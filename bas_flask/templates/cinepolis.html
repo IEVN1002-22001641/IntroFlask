@@ -1,0 +1,125 @@
+{% extends "layout.html" %}
+{% block container %}
+
+<div class="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow">
+  <h1 class="text-3xl font-bold text-gray-900 mb-6">Cinepolis</h1>
+
+  <h2>Entradas</h2>
+  <br>
+
+  <form action="/cinepolis" method="POST">
+
+    <!-- Nombre -->
+    <div class="mb-5">
+      <label for="nombre" class="block mb-2 text-sm font-medium text-gray-900">
+        Nombre
+      </label>
+      <input
+        type="text"
+        id="nombre"
+        name="nombre"
+        value="{{ nombre }}"
+        required
+        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+        placeholder="Nombre(s) y Apellidos"
+      >
+    </div>
+
+    <!-- Cantidad Compradores -->
+    <div class="mb-5">
+      <label for="cc" class="block mb-2 text-sm font-medium text-gray-900">
+        Cantidad Compradores
+      </label>
+      <input
+        type="number"
+        id="cc"
+        name="cc"
+        value="{{ cc if cc > 0 else '' }}"
+        min="1"
+        required
+        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+        placeholder="Cantidad de compradores"
+      >
+    </div>
+
+    <!-- Tarjeta Cineco -->
+    <div class="mb-5">
+      <span class="block mb-2 text-sm font-medium text-gray-900">¿Cuenta con tarjeta Cineco?</span>
+      <div class="flex items-center space-x-6">
+        <label class="inline-flex items-center text-sm font-medium text-gray-900">
+          <input
+            type="radio"
+            id="cinecoSi"
+            name="cineco"
+            value="true"
+            {% if cineco %}checked{% endif %}
+            required
+            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 me-2"
+          >
+          Sí
+        </label>
+
+        <label class="inline-flex items-center text-sm font-medium text-gray-900">
+          <input
+            type="radio"
+            id="cinecoNo"
+            name="cineco"
+            value="false"
+            {% if not cineco %}checked{% endif %}
+            required
+            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 me-2"
+          >
+          No
+        </label>
+      </div>
+    </div>
+
+    <!-- Cantidad Boletos -->
+    <div class="mb-5">
+      <label for="cb" class="block mb-2 text-sm font-medium text-gray-900">
+        Cantidad Boletos
+      </label>
+      <input
+        type="number"
+        id="cb"
+        name="cb"
+        value="{{ cb if cb > 0 else '' }}"
+        min="1"
+        required
+        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+        placeholder="¿Cuántos Boletos?"
+      >
+    </div>
+
+    {% if mensaje_error %}
+    <div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 border border-red-300" role="alert">
+      <span class="font-medium">Atención:</span> {{ mensaje_error }}
+    </div>
+    {% endif %}
+
+    <hr class="my-4">
+
+    <h2>Salidas</h2>
+    <br>
+    <p class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5">
+      Valor a pagar: ${{ total_pagar }}
+    </p>
+
+    <div class="mt-6 space-x-2">
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700">
+        Procesar
+      </button>
+    </div>
+
+  </form>
+
+  {% if nombre and not mensaje_error %}
+  <div class="mt-6 border-t pt-4">
+    <h1 class="text-xl font-bold mb-2">Acciones</h1>
+    <h2>Nombre: {{ nombre }}</h2>
+    <h2>Cantidad Boletos: {{ cb }}</h2>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
