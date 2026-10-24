@@ -1,110 +1,133 @@
-from flask import Flask, render_template, request
-import math
-
-app = Flask(__name__)
-
-@app.route("/")
-def index():
-    titulo = "Hola"
-    lista = ['Luis', 'Paco', 'Pedro']
-    return render_template("index.html", titulo=titulo, lista=lista)
-
-@app.route("/distancia", methods=["GET","POST"])
-def distancia():
-    n1=0
-    n2=0
-    n3=0
-    n4=0
-    resSr=0
-    res=0
-    
-    if request.method=="POST":
-        n1=request.form.get("n1")
-        n2=request.form.get("n2")
-        n3=request.form.get("n3")
-        n4=request.form.get("n4")
-
-        if n1 and n2 and n3 and n4:
-            try:
-                resSr= ((float(n3)-float(n1))**2) + ((float(n4)-float(n2))**2)
-                res= math.sqrt(resSr)
-            except ValueError:
-                res=0
-
-    return render_template("distancia.html", n1=n1, n2=n2, n3=n3, n4=n4, resSr=resSr, res=res)
-
-@app.route("/operasbas", methods=["GET","POST"])
-def operasbas():
-    n1=0
-    n2=0
-    res=0
-    operacion=""
-
-    if request.method=="POST":
-        n1=request.form.get("n1")
-        n2=request.form.get("n2")
-        if request.form.get("operacion")=="suma":
-            res=float(n1)+float(n2)
-        
-    return render_template("operasbas.html", n1=n1, n2=n2, res=res)
-
-@app.route("/cinepolis", methods=["GET", "POST"])
-def cinepolis():
-    nombre = ""
-    cc = 0
-    cineco = False
-    cb = 0
-    total_pagar = 0
-    mensaje_error = ""
-    precio_boleto = 12.0
-
-    if request.method == "POST":
-        nombre = request.form.get("nombre", "")
-        cc = int(request.form.get("cc", 0))
-        cineco = request.form.get("cineco") == "true"
-        cb = int(request.form.get("cb", 0))
+from flask import Flask, jsonify, request
+from flask_mysqldb import MySQL
+from flask_cors import CORS
  
-        if cb <= cc * 7:
-            
-            if cb > 5:
-                descuento = 0.15
-            elif cb >= 3:
-                descuento = 0.10
-            else:
-                descuento = 0.0
-
-            total_sd = precio_boleto * cb
-            total_pagar = total_sd - (total_sd * descuento)
-
-            if cineco:
-                total_pagar = total_pagar - (total_pagar * 0.10)
+from config import config
+ 
+app = Flask(__name__)
+ 
+app.config.from_object(config['development'])
+ 
+CORS(app)
+con = MySQL(app)
+ 
+@app.route("/alumnos", methods=['GET'])
+def lista_alumnos():
+    try:
+        cursor = con.connection.cursor()
+        sql = "select * from alumnos"
+        cursor.execute(sql)
+        datos = cursor.fetchall()
+        alumnos = []
+        for fila in datos:
+            alumno = {
+                "matricula": fila[0],
+                "nombre": fila[1],
+                "apaterno": fila[2],
+                "amaterno": fila[3],
+                "correo": fila[4]
+            }
+            alumnos.append(alumno)
+        return jsonify({
+            'alumnos': alumnos,
+            'mensaje': 'Lista de alumnos',
+            'exito': True
+        })
+    except Exception as ex:
+        return jsonify({
+            "message": f"error {ex}",
+            'exito': False
+        })
+ 
+def leer_alumno_bd(matricula):
+    try:
+        cursor = con.connection.cursor()
+        sql = "SELECT * FROM alumnos WHERE matricula = %s"
+        cursor.execute(sql, (matricula,))
+        datos = cursor.fetchone()
+       
+        if datos != None:
+            alumno = {
+                "matricula": datos[0],
+                "nombre": datos[1],
+                "apaterno": datos[2],
+                "amaterno": datos[3],
+                "correo": datos[4]
+            }
+            return alumno
         else:
-            mensaje_error = "Solo se pueden 7 boletos máximo por persona"
-
-    return render_template("cinepolis.html", nombre=nombre, cc=cc,  cineco=cineco, cb=cb, total_pagar=round(total_pagar, 2), mensaje_error=mensaje_error)
-
-
-@app.route("/hola")
-def hola():
-    return "<h3> Saludo desde hola </h3>"
-
-@app.route("/user/<string:user>")
-def user(user):
-    return "Hola " + user
-
-@app.route("/numero/<int:n>")
-def numero(n):
-    return "Numero: {}".format(n)
-
-@app.route("/user/<int:id>/<string:username>")
-def username(id, username):
-    return "ID: {} nombre: {}".format(id, username)
-
-@app.route("/suma/<float:n1>/<float:n2>")
-def func(n1, n2):
-    return "la suma es: {}".format(n1 + n2)
-
-
-
+            return None
+    except Exception as ex:
+        raise ex
+ 
+@app.route("/alumnos/<mat>", methods=['GET'])
+def leer_alumno(mat):
+    try:
+        alumno = leer_alumno_bd(mat)
+        if alumno != None:
+            return jsonify({
+                'alumno': alumno,
+                'mensaje': 'Alumno encontrado',
+                'exito': True
+            })
+        else:
+            return jsonify({
+                'mensaje': 'Alumno no encontrado',
+                'exito': False
+            })
+    except Exception as ex:
+        return jsonify({
+            "message": f"error {ex}",
+            'exito': False
+        })
+ 
+@app.route("/alumnos", methods=['POST'])
+def registra_alumno():
+    try:
+        alumno = leer_alumno_bd(request.json['matricula'])
+        if alumno != None:
+            return jsonify({"message": "Alumno ya existe", 'exito': False})
+        else:
+            cursor = con.connection.cursor()
+            sql = """INSERT INTO alumnos (matricula, nombre, apaterno, amaterno, correo) VALUES (
+            '{0}', '{1}', '{2}', '{3}', '{4}')""".format(
+                request.json['matricula'],
+                request.json['nombre'],
+                request.json['apaterno'],
+                request.json['amaterno'],
+                request.json['correo']
+            )
+            cursor.execute(sql)
+            con.connection.commit()
+ 
+            return jsonify({"message": "Alumno registrado", 'exito': True})
+    except Exception as ex:
+        return jsonify({"message": f"Error {ex}", 'exito': False})
+@app.route("/alumnos/<mat>", methods=['PUT'])
+def actualizar_cursor(mat):
+    try:
+        alumno=leer_alumno_bd(mat)
+        if alumno != None:
+            cursor=con.connection.cursor()
+            sql="""UPDATE alumnos SET nombre='{0}', apaterno'{1}', amaterno'{2}', correo'{3}'
+            WHERE matricula={4}""".format(request.json['nombre'],
+                request.json['apaterno'],
+                request.json['amaterno'],
+                request.json['correo'],
+                mat)
+            cursor.execute(sql)
+            con.connection.commit()
+            return jsonify({'mensaje': "Alumno actualizado.", exito: True})
+        else:
+            return jsonify({"message": "Alumno no encontrado", 'exito': False})
+           
+    except Exception as ex:
+        return jsonify({"message": "Error {0}".format(ex), 'exito': False})
+ 
+def pagina_no_encontrada(error):
+    return "<h1>Pagina no encontrada</h1>", 404
+ 
+app.register_error_handler(404, pagina_no_encontrada)
+ 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
